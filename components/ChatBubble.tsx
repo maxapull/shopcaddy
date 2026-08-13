@@ -16,7 +16,7 @@ export function ChatBubble({
   if (isUser) {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-caddy-orange px-4 py-2.5 text-sm text-white shadow-card">
+        <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-caddy-orange px-4 py-2.5 text-sm text-white shadow-card md:max-w-sm">
           {message.text}
         </div>
       </div>
@@ -28,7 +28,7 @@ export function ChatBubble({
       <div className="mt-0.5 shrink-0">
         <Logo size="sm" />
       </div>
-      <div className="max-w-[82%] space-y-2">
+      <div className="max-w-[82%] space-y-2 md:max-w-sm">
         <div className="rounded-2xl rounded-tl-sm bg-caddy-orange-light/70 px-4 py-2.5 text-sm text-caddy-ink shadow-card">
           {message.text}
         </div>

@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-bold text-caddy-ink">More ways ShopCaddy helps</h2>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <FeatureCard
             icon={Boxes}
             badge="Beta"

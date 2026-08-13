@@ -27,9 +27,9 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      <div className="mt-5 space-y-3 px-5">
+      <div className="mt-5 grid grid-cols-1 gap-3 px-5 md:grid-cols-2">
         {orders.length === 0 && (
-          <div className="flex flex-col items-center py-12 text-center text-caddy-gray">
+          <div className="flex flex-col items-center py-12 text-center text-caddy-gray md:col-span-2">
             <Package size={28} className="mb-2 text-caddy-orange-light" />
             <p className="text-sm">No orders yet — ask ShopCaddy to buy something in Chat.</p>
           </div>

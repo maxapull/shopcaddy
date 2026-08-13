@@ -56,25 +56,34 @@ interface AppStateContextValue extends AppState {
 
 const AppStateContext = createContext<AppStateContextValue | null>(null);
 
-function loadInitial(): AppState {
-  if (typeof window === "undefined") {
-    return { bankLinked: false, bankName: null, orders: SEED_ORDERS, savedLists: [], monthlyBudget: MONTHLY_BUDGET };
-  }
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {
-    // ignore corrupt storage
-  }
-  return { bankLinked: false, bankName: null, orders: SEED_ORDERS, savedLists: [], monthlyBudget: MONTHLY_BUDGET };
-}
+const DEFAULT_STATE: AppState = {
+  bankLinked: false,
+  bankName: null,
+  orders: SEED_ORDERS,
+  savedLists: [],
+  monthlyBudget: MONTHLY_BUDGET,
+};
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(loadInitial);
+  // Always start from the same default on server and client so hydration
+  // matches; any persisted state is loaded client-side after mount below.
+  const [state, setState] = useState<AppState>(DEFAULT_STATE);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) setState(JSON.parse(raw));
+    } catch {
+      // ignore corrupt storage
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+  }, [state, hydrated]);
 
   const value = useMemo<AppStateContextValue>(() => {
     const monthSpend = state.orders.reduce((s, o) => s + o.price, 0);

@@ -53,7 +53,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="pb-28">
+    <div>
       <TopBar
         title="Chat with ShopCaddy"
         subtitle={bankLinked ? "Bank linked — I can check out for you" : "Bank not linked"}
@@ -87,7 +87,7 @@ export default function ChatPage() {
           e.preventDefault();
           send(input);
         }}
-        className="fixed bottom-16 left-1/2 flex w-full max-w-md -translate-x-1/2 items-center gap-2 border-t border-caddy-orange-light/70 bg-white px-4 py-3"
+        className="flex items-center gap-2 border-t border-caddy-orange-light/70 bg-white px-4 py-3 md:rounded-b-xl2 md:border md:border-t-0 md:border-caddy-orange-light md:shadow-card"
       >
         <input
           value={input}

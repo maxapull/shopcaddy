@@ -59,7 +59,7 @@ export default function ListMakerPage() {
   const savings = listSavings(items);
 
   return (
-    <div className={items.length > 0 ? "pb-36" : "pb-8"}>
+    <div className="pb-8">
       <TopBar title="AI List Maker" subtitle="Tell me what you need — food or clothes" />
 
       <div className="px-5 pt-4">
@@ -99,8 +99,8 @@ export default function ListMakerPage() {
       </div>
 
       {items.length > 0 && (
-        <div className="mt-5 space-y-3 px-5">
-          <div className="flex items-center justify-between">
+        <div className="mt-5 px-5">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-bold text-caddy-ink">Your list ({items.length})</h2>
             <button
               onClick={handleSave}
@@ -109,15 +109,17 @@ export default function ListMakerPage() {
               <BookmarkPlus size={14} /> {savedNotice ? "Saved!" : "Save list"}
             </button>
           </div>
-          {items.map((item) => (
-            <ListItemRow
-              key={item.id}
-              item={item}
-              onToggleAlt={() => updateItem(item.id, { useAlternative: !item.useAlternative })}
-              onQtyChange={(qty) => updateItem(item.id, { quantity: qty })}
-              onRemove={() => removeItem(item.id)}
-            />
-          ))}
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {items.map((item) => (
+              <ListItemRow
+                key={item.id}
+                item={item}
+                onToggleAlt={() => updateItem(item.id, { useAlternative: !item.useAlternative })}
+                onQtyChange={(qty) => updateItem(item.id, { quantity: qty })}
+                onRemove={() => removeItem(item.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
