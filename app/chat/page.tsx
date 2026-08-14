@@ -5,9 +5,9 @@ import { ShieldCheck, ShieldAlert, SendHorizonal } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { ChatBubble } from "@/components/ChatBubble";
 import { BankLinkSheet } from "@/components/BankLinkSheet";
-import { chatRespond, PendingPurchase } from "@/lib/ai";
+import { chatRespond, chooseProduct, PendingPurchase } from "@/lib/ai";
 import { useAppState } from "@/lib/store";
-import { ChatMessage } from "@/types";
+import { ChatMessage, Product } from "@/types";
 
 const WELCOME: ChatMessage = {
   id: "welcome",
@@ -52,6 +52,12 @@ export default function ChatPage() {
     }
   }
 
+  function selectProduct(product: Product) {
+    const { message: reply, pendingProduct } = chooseProduct(product, bankLinked);
+    setMessages((prev) => [...prev, reply]);
+    setPending(pendingProduct);
+  }
+
   return (
     <div>
       <TopBar
@@ -77,6 +83,7 @@ export default function ChatPage() {
             message={m}
             onLinkBank={() => setShowBankSheet(true)}
             onConfirm={() => send("yes")}
+            onSelectProduct={selectProduct}
           />
         ))}
         <div ref={bottomRef} />

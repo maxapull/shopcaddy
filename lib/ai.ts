@@ -1,4 +1,4 @@
-import { catalog, findAlternative, findByTag } from "@/lib/catalog";
+import { catalog, findAllByTag, findAlternative, findByTag } from "@/lib/catalog";
 import { ChatMessage, ListItem, Product } from "@/types";
 
 // --- List Maker -----------------------------------------------------------
@@ -93,9 +93,10 @@ const BUY_INTENT = /\b(buy|order|purchase|get me|pick up|grab me|find me)\b/;
 const GREETING = /\b(hi|hello|hey)\b/;
 const HELP = /\b(help|what can you do)\b/;
 
-function findProductInText(lower: string): Product | undefined {
+function findTagInText(lower: string): string | undefined {
   for (const product of catalog) {
-    if (product.tags.some((tag) => lower.includes(tag))) return product;
+    const match = product.tags.find((tag) => lower.includes(tag));
+    if (match) return match;
   }
   return undefined;
 }
@@ -109,6 +110,36 @@ function id() {
 export interface PendingPurchase {
   product: Product;
   originalPrice?: number;
+}
+
+function chooseProductMessage(product: Product, bankLinked: boolean): ChatMessage {
+  if (!bankLinked) {
+    return {
+      id: id(),
+      role: "assistant",
+      kind: "bank-required",
+      text: `Good choice — ${product.name} for £${product.price.toFixed(
+        2
+      )} from ${product.retailer}. To actually complete a purchase I need your bank linked first — head to Account → Link bank (demo only, no real bank is contacted), then just say "yes" and I'll pick up where we left off.`,
+      meta: { product },
+    };
+  }
+  return {
+    id: id(),
+    role: "assistant",
+    kind: "order-confirm",
+    text: `Great pick: ${product.name} — £${product.price.toFixed(2)} from ${product.retailer}. Want me to go ahead and buy it?`,
+    meta: { product },
+  };
+}
+
+// Called when the user taps a product card (from a multi-brand options
+// message) to pick a specific retailer/brand to buy.
+export function chooseProduct(
+  product: Product,
+  bankLinked: boolean
+): { message: ChatMessage; pendingProduct: PendingPurchase | null } {
+  return { message: chooseProductMessage(product, bankLinked), pendingProduct: { product } };
 }
 
 export function chatRespond(
@@ -126,6 +157,7 @@ export function chatRespond(
           role: "assistant",
           kind: "bank-required",
           text: "I still need your bank linked to complete this purchase securely. Head to Account → Link bank (this is a demo, no real bank is contacted).",
+          meta: { product: pendingProduct.product },
         },
         pendingProduct,
       };
@@ -157,8 +189,9 @@ export function chatRespond(
   }
 
   if (BUY_INTENT.test(lower)) {
-    const product = findProductInText(lower);
-    if (!product) {
+    const tag = findTagInText(lower);
+    const options = tag ? findAllByTag(tag) : [];
+    if (!tag || options.length === 0) {
       return {
         message: {
           id: id(),
@@ -169,42 +202,19 @@ export function chatRespond(
       };
     }
 
-    if (!bankLinked) {
-      return {
-        message: {
-          id: id(),
-          role: "assistant",
-          kind: "bank-required",
-          text: `I found ${product.name} for £${product.price.toFixed(
-            2
-          )} from ${product.retailer}. To actually complete a purchase I need your bank linked first — head to Account → Link bank (demo only, no real bank is contacted), then just say "yes" and I'll pick up where we left off.`,
-          meta: { product },
-        },
-        pendingProduct: { product },
-      };
+    if (options.length === 1) {
+      return chooseProduct(options[0], bankLinked);
     }
-
-    const alt = findAlternative(product);
-    const choose = alt && alt.price < product.price ? alt : product;
-    const originalPrice = choose.id === alt?.id ? product.price : undefined;
-    const savingsNote =
-      originalPrice !== undefined
-        ? ` (I switched you to ${choose.retailer} — that's £${(
-            originalPrice - choose.price
-          ).toFixed(2)} cheaper than ${product.retailer}.)`
-        : "";
 
     return {
       message: {
         id: id(),
         role: "assistant",
-        kind: "order-confirm",
-        text: `Found it: ${choose.name} — £${choose.price.toFixed(
-          2
-        )} from ${choose.retailer}.${savingsNote} Want me to go ahead and buy it?`,
-        meta: { product: choose, originalPrice },
+        kind: "product-options",
+        text: `Here are a few options for "${tag}" — pick the one you'd like:`,
+        meta: { options },
       },
-      pendingProduct: { product: choose, originalPrice },
+      pendingProduct: null,
     };
   }
 

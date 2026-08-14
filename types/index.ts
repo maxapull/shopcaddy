@@ -34,9 +34,10 @@ export interface ChatMessage {
   id: string;
   role: ChatRole;
   text: string;
-  kind?: "text" | "order-confirm" | "order-success" | "bank-required";
+  kind?: "text" | "order-confirm" | "order-success" | "bank-required" | "product-options";
   meta?: {
     product?: Product;
+    options?: Product[];
     orderTotal?: number;
     originalPrice?: number;
   };
