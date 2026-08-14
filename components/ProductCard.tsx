@@ -1,6 +1,6 @@
 import { ExternalLink, Truck } from "lucide-react";
 import { Product } from "@/types";
-import { deliveryOptions, productImageUrl, productUrl } from "@/lib/catalog";
+import { deliveryOptions, productUrl } from "@/lib/catalog";
 
 export function ProductCard({
   product,
@@ -15,11 +15,6 @@ export function ProductCard({
 }) {
   return (
     <div className="flex gap-3 rounded-xl2 border border-caddy-orange-light bg-white p-3 shadow-card">
-      <img
-        src={productImageUrl(product)}
-        alt={product.name}
-        className="h-16 w-16 shrink-0 rounded-lg object-cover"
-      />
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex items-start justify-between gap-2">
           <p className="truncate text-sm font-semibold text-caddy-ink">{product.name}</p>

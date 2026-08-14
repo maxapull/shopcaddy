@@ -110,37 +110,6 @@ const RETAILER_DOMAINS: Record<string, string> = {
   Nike: "nike.com",
 };
 
-// Real, CC-licensed photos matched to each product type (sourced via
-// Openverse/Wikimedia Commons). Keyed by product id with the trailing
-// "-1"/"-2" retailer-variant suffix stripped, since both retailer variants
-// of a product show the same real-world item.
-const PRODUCT_IMAGES: Record<string, string> = {
-  "f-milk": "https://live.staticflickr.com/1179/829573216_c2dacb8bfc_b.jpg",
-  "f-bread": "https://live.staticflickr.com/5143/5687662991_7c25e42103_b.jpg",
-  "f-eggs": "https://live.staticflickr.com/8384/8602413979_9e5570ded8_b.jpg",
-  "f-chicken": "https://live.staticflickr.com/65535/47006210954_74e24753c7_b.jpg",
-  "f-rice": "https://live.staticflickr.com/6140/5944547399_b9c32a5c06_b.jpg",
-  "f-curry-sauce": "https://live.staticflickr.com/142/407077986_ae085e972e_b.jpg",
-  "f-pasta": "https://live.staticflickr.com/4089/4982450749_18aa8389a9_b.jpg",
-  "f-tomato": "https://upload.wikimedia.org/wikipedia/commons/d/da/Tinned_tomatoes.jpg",
-  "f-cheese": "https://live.staticflickr.com/4073/4935996570_f62c6dc4fd_b.jpg",
-  "f-banana": "https://live.staticflickr.com/8092/8462993806_a1861baa20_b.jpg",
-  "f-coffee": "https://live.staticflickr.com/7355/10907053076_d477b87632_b.jpg",
-  "f-kettle": "https://live.staticflickr.com/8055/8448492745_f8410f609e_b.jpg",
-  "c-tshirt": "https://live.staticflickr.com/1778/42970919952_50f09779d0.jpg",
-  "c-jeans": "https://live.staticflickr.com/65535/49106600577_c2c99260d8_b.jpg",
-  "c-shoes": "https://live.staticflickr.com/2610/3769610224_18245a968a_b.jpg",
-  "c-jacket": "https://live.staticflickr.com/7191/6989376337_e7f9bb2a46_b.jpg",
-  "c-socks": "https://live.staticflickr.com/1437/1245159486_227db84897_b.jpg",
-  "c-dress": "https://live.staticflickr.com/964/27447555117_7769d479bc_b.jpg",
-  "c-hoodie": "https://live.staticflickr.com/65535/49067949356_9cf9f93dc5.jpg",
-};
-
-export function productImageUrl(product: Product): string {
-  const key = product.id.replace(/-\d+$/, "");
-  return PRODUCT_IMAGES[key] ?? `https://picsum.photos/seed/${encodeURIComponent(product.id)}/200/200`;
-}
-
 export function productUrl(product: Product): string {
   const domain = RETAILER_DOMAINS[product.retailer];
   if (!domain) return "#";
