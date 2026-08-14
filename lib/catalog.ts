@@ -1,4 +1,4 @@
-import { Product } from "@/types";
+import { DeliveryOption, Product } from "@/types";
 
 // Mock product catalog. In a real ShopCaddy this would be a live price-comparison
 // feed across retailers (Tesco, Aldi, ASOS, Uniqlo, etc). Prices/retailers here are
@@ -119,12 +119,23 @@ export function productUrl(product: Product): string {
 const SUPERMARKETS = new Set(["Tesco", "Aldi", "Sainsbury's", "Lidl", "Waitrose", "Asda"]);
 const ELECTRICALS = new Set(["Currys", "Argos"]);
 
-export function deliveryOptions(product: Product): string[] {
+// The actual choices offered at checkout — asked as a question in chat,
+// not just shown as badges.
+export function deliveryOptionsFor(product: Product): DeliveryOption[] {
   if (SUPERMARKETS.has(product.retailer)) {
-    return ["Next-day delivery", "Free delivery over £40"];
+    return [
+      { id: "standard", label: "Standard delivery", eta: "Next available 2-hour slot", price: 4.99 },
+      { id: "nextday", label: "Next-day delivery", eta: "Priority slot tomorrow", price: 6.99 },
+    ];
   }
   if (ELECTRICALS.has(product.retailer)) {
-    return ["Next-day delivery available", "Free delivery over £50"];
+    return [
+      { id: "standard", label: "Standard delivery", eta: "3-5 working days", price: 0 },
+      { id: "nextday", label: "Next-day delivery", eta: "Order before 8pm for tomorrow", price: 5.99 },
+    ];
   }
-  return ["Next-day delivery", "Free returns within 30 days"];
+  return [
+    { id: "standard", label: "Standard delivery", eta: "3-5 working days", price: 0 },
+    { id: "nextday", label: "Next-day delivery", eta: "Order before 8pm for tomorrow", price: 4.99 },
+  ];
 }

@@ -1,5 +1,5 @@
-import { catalog, findAllByTag, findAlternative, findByTag } from "@/lib/catalog";
-import { ChatMessage, ListItem, Product } from "@/types";
+import { catalog, deliveryOptionsFor, findAllByTag, findAlternative, findByTag } from "@/lib/catalog";
+import { ChatMessage, DeliveryOption, ListItem, Product } from "@/types";
 
 // --- List Maker -----------------------------------------------------------
 // A lightweight rule-based stand-in for an LLM parsing a natural-language
@@ -109,37 +109,73 @@ function id() {
 
 export interface PendingPurchase {
   product: Product;
+  deliveryOption?: DeliveryOption;
   originalPrice?: number;
 }
 
-function chooseProductMessage(product: Product, bankLinked: boolean): ChatMessage {
-  if (!bankLinked) {
-    return {
-      id: id(),
-      role: "assistant",
-      kind: "bank-required",
-      text: `Good choice — ${product.name} for £${product.price.toFixed(
-        2
-      )} from ${product.retailer}. To actually complete a purchase I need your bank linked first — head to Account → Link bank (demo only, no real bank is contacted), then just say "yes" and I'll pick up where we left off.`,
-      meta: { product },
-    };
-  }
-  return {
-    id: id(),
-    role: "assistant",
-    kind: "order-confirm",
-    text: `Great pick: ${product.name} — £${product.price.toFixed(2)} from ${product.retailer}. Want me to go ahead and buy it?`,
-    meta: { product },
-  };
+function formatDelivery(option: DeliveryOption): string {
+  const price = option.price === 0 ? "free" : `£${option.price.toFixed(2)}`;
+  return `${option.label} (${price}, ${option.eta})`;
 }
 
 // Called when the user taps a product card (from a multi-brand options
-// message) to pick a specific retailer/brand to buy.
+// message) to pick a specific retailer/brand to buy. Delivery is asked
+// before checkout, since it doesn't require the bank to be linked yet.
 export function chooseProduct(
-  product: Product,
+  product: Product
+): { message: ChatMessage; pendingProduct: PendingPurchase | null } {
+  return {
+    message: {
+      id: id(),
+      role: "assistant",
+      kind: "delivery-options",
+      text: `Got it — how would you like ${product.name} delivered?`,
+      meta: { product, deliveryOptions: deliveryOptionsFor(product) },
+    },
+    pendingProduct: { product },
+  };
+}
+
+// Called when the user taps a delivery option (from the delivery-options
+// message) to pick standard vs. next-day, etc.
+export function chooseDelivery(
+  pendingProduct: PendingPurchase,
+  option: DeliveryOption,
   bankLinked: boolean
 ): { message: ChatMessage; pendingProduct: PendingPurchase | null } {
-  return { message: chooseProductMessage(product, bankLinked), pendingProduct: { product } };
+  const { product } = pendingProduct;
+  const total = product.price + option.price;
+  const updatedPending: PendingPurchase = { ...pendingProduct, deliveryOption: option };
+
+  if (!bankLinked) {
+    return {
+      message: {
+        id: id(),
+        role: "assistant",
+        kind: "bank-required",
+        text: `Good choice — ${product.name} for £${product.price.toFixed(2)} from ${
+          product.retailer
+        }, with ${formatDelivery(option)}. Total: £${total.toFixed(
+          2
+        )}. To actually complete a purchase I need your bank linked first — head to Account → Link bank (demo only, no real bank is contacted), then just say "yes" and I'll pick up where we left off.`,
+        meta: { product, deliveryOption: option },
+      },
+      pendingProduct: updatedPending,
+    };
+  }
+
+  return {
+    message: {
+      id: id(),
+      role: "assistant",
+      kind: "order-confirm",
+      text: `Great — ${product.name} from ${product.retailer} with ${formatDelivery(
+        option
+      )}. Total: £${total.toFixed(2)}. Want me to go ahead and buy it?`,
+      meta: { product, deliveryOption: option },
+    },
+    pendingProduct: updatedPending,
+  };
 }
 
 export function chatRespond(
@@ -150,6 +186,16 @@ export function chatRespond(
   const lower = message.toLowerCase().trim();
 
   if (AFFIRMATIVE.test(lower) && pendingProduct) {
+    if (!pendingProduct.deliveryOption) {
+      return {
+        message: {
+          id: id(),
+          role: "assistant",
+          text: "Just pick a delivery option above and I'll take it from there.",
+        },
+        pendingProduct,
+      };
+    }
     if (!bankLinked) {
       return {
         message: {
@@ -157,21 +203,22 @@ export function chatRespond(
           role: "assistant",
           kind: "bank-required",
           text: "I still need your bank linked to complete this purchase securely. Head to Account → Link bank (this is a demo, no real bank is contacted).",
-          meta: { product: pendingProduct.product },
+          meta: { product: pendingProduct.product, deliveryOption: pendingProduct.deliveryOption },
         },
         pendingProduct,
       };
     }
-    const { product, originalPrice } = pendingProduct;
+    const { product, originalPrice, deliveryOption } = pendingProduct;
+    const orderTotal = product.price + deliveryOption.price;
     return {
       message: {
         id: id(),
         role: "assistant",
         kind: "order-success",
-        text: `Done! I've placed your order for ${product.name} — £${product.price.toFixed(
-          2
-        )} from ${product.retailer}. You'll get a confirmation email and it'll show up in your Orders tab.`,
-        meta: { product, orderTotal: product.price, originalPrice },
+        text: `Done! I've placed your order for ${product.name} — £${orderTotal.toFixed(2)} from ${
+          product.retailer
+        }, with ${formatDelivery(deliveryOption)}. You'll get a confirmation email and it'll show up in your Orders tab.`,
+        meta: { product, orderTotal, originalPrice, deliveryOption },
       },
       pendingProduct: null,
     };
@@ -203,7 +250,7 @@ export function chatRespond(
     }
 
     if (options.length === 1) {
-      return chooseProduct(options[0], bankLinked);
+      return chooseProduct(options[0]);
     }
 
     return {

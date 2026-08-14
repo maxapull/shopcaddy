@@ -1,6 +1,6 @@
 import { ExternalLink, Truck } from "lucide-react";
 import { Product } from "@/types";
-import { deliveryOptions, productUrl } from "@/lib/catalog";
+import { deliveryOptionsFor, productUrl } from "@/lib/catalog";
 
 export function ProductCard({
   product,
@@ -28,12 +28,12 @@ export function ProductCard({
           {product.retailer} · £{product.price.toFixed(2)}
         </p>
         <div className="flex flex-wrap gap-1">
-          {deliveryOptions(product).map((d) => (
+          {deliveryOptionsFor(product).map((d) => (
             <span
-              key={d}
+              key={d.id}
               className="flex items-center gap-1 rounded-full bg-caddy-orange-light/60 px-2 py-0.5 text-[10px] font-medium text-caddy-orange-dark"
             >
-              <Truck size={10} /> {d}
+              <Truck size={10} /> {d.label} · {d.price === 0 ? "Free" : `£${d.price.toFixed(2)}`}
             </span>
           ))}
         </div>

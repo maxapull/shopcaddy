@@ -5,9 +5,9 @@ import { ShieldCheck, ShieldAlert, SendHorizonal } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { ChatBubble } from "@/components/ChatBubble";
 import { BankLinkSheet } from "@/components/BankLinkSheet";
-import { chatRespond, chooseProduct, PendingPurchase } from "@/lib/ai";
+import { chatRespond, chooseDelivery, chooseProduct, PendingPurchase } from "@/lib/ai";
 import { useAppState } from "@/lib/store";
-import { ChatMessage, Product } from "@/types";
+import { ChatMessage, DeliveryOption, Product } from "@/types";
 
 const WELCOME: ChatMessage = {
   id: "welcome",
@@ -39,7 +39,7 @@ export default function ChatPage() {
     setInput("");
 
     if (reply.kind === "order-success" && reply.meta?.product) {
-      const { product, orderTotal, originalPrice } = reply.meta;
+      const { product, orderTotal, originalPrice, deliveryOption } = reply.meta;
       addOrder({
         id: `ord-${Date.now()}`,
         date: new Date().toISOString().slice(0, 10),
@@ -48,12 +48,20 @@ export default function ChatPage() {
         price: orderTotal ?? product.price,
         saved: originalPrice ? originalPrice - product.price : 0,
         status: "Placed",
+        delivery: deliveryOption?.label,
       });
     }
   }
 
   function selectProduct(product: Product) {
-    const { message: reply, pendingProduct } = chooseProduct(product, bankLinked);
+    const { message: reply, pendingProduct } = chooseProduct(product);
+    setMessages((prev) => [...prev, reply]);
+    setPending(pendingProduct);
+  }
+
+  function selectDelivery(option: DeliveryOption) {
+    if (!pending) return;
+    const { message: reply, pendingProduct } = chooseDelivery(pending, option, bankLinked);
     setMessages((prev) => [...prev, reply]);
     setPending(pendingProduct);
   }
@@ -84,6 +92,7 @@ export default function ChatPage() {
             onLinkBank={() => setShowBankSheet(true)}
             onConfirm={() => send("yes")}
             onSelectProduct={selectProduct}
+            onSelectDelivery={selectDelivery}
           />
         ))}
         <div ref={bottomRef} />

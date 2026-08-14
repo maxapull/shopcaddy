@@ -30,14 +30,29 @@ export interface ShoppingList {
 
 export type ChatRole = "user" | "assistant";
 
+export interface DeliveryOption {
+  id: string;
+  label: string;
+  eta: string;
+  price: number; // 0 = free
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
   text: string;
-  kind?: "text" | "order-confirm" | "order-success" | "bank-required" | "product-options";
+  kind?:
+    | "text"
+    | "order-confirm"
+    | "order-success"
+    | "bank-required"
+    | "product-options"
+    | "delivery-options";
   meta?: {
     product?: Product;
     options?: Product[];
+    deliveryOptions?: DeliveryOption[];
+    deliveryOption?: DeliveryOption;
     orderTotal?: number;
     originalPrice?: number;
   };
@@ -51,4 +66,5 @@ export interface Order {
   price: number;
   saved: number;
   status: "Delivered" | "Processing" | "Placed";
+  delivery?: string;
 }

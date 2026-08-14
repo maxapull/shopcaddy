@@ -45,6 +45,9 @@ export default function OrdersPage() {
                 <p className="text-xs text-caddy-gray">
                   {order.retailer} · {order.date}
                 </p>
+                {order.delivery && (
+                  <p className="text-xs text-caddy-gray">{order.delivery}</p>
+                )}
               </div>
               <span
                 className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATUS_STYLES[order.status]}`}
