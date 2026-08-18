@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BookmarkPlus, FolderOpen, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { BookmarkPlus, Camera, FolderOpen, Loader2, Plus } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { ListItemRow } from "@/components/ListItemRow";
 import { TotalBar } from "@/components/TotalBar";
 import { createClient } from "@/lib/supabase/client";
 import { saveShoppingList } from "@/lib/actions";
 import { BUDGET_CATEGORIES } from "@/lib/categories";
+import { parseReceiptText, scanImageText } from "@/lib/ocr";
 import { ListItem } from "@/types";
 
 interface SavedListSummary {
@@ -18,6 +19,12 @@ interface SavedListSummary {
   total: number;
 }
 
+interface HistoryItem {
+  name: string;
+  category: string;
+  price: number;
+}
+
 export default function ListMakerPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState(BUDGET_CATEGORIES[0]);
@@ -26,9 +33,15 @@ export default function ListMakerPage() {
   const [saving, setSaving] = useState(false);
   const [savedNotice, setSavedNotice] = useState(false);
   const [savedLists, setSavedLists] = useState<SavedListSummary[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadSavedLists();
+    loadHistory();
   }, []);
 
   async function loadSavedLists() {
@@ -52,6 +65,28 @@ export default function ListMakerPage() {
     );
   }
 
+  // Every item the user has ever added to a saved list, deduped to the most
+  // recent price/category per name — their own personal history, not a
+  // shared catalog.
+  async function loadHistory() {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("shopping_list_items")
+      .select("name, category, price, created_at")
+      .order("created_at", { ascending: false })
+      .limit(300);
+
+    const seen = new Set<string>();
+    const deduped: HistoryItem[] = [];
+    for (const row of data ?? []) {
+      const key = row.name.trim().toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      deduped.push({ name: row.name, category: row.category, price: Number(row.price) });
+    }
+    setHistory(deduped);
+  }
+
   function addItem() {
     const trimmedName = name.trim();
     const priceNum = Number(price);
@@ -62,6 +97,34 @@ export default function ListMakerPage() {
     ]);
     setName("");
     setPrice("");
+  }
+
+  function pickSuggestion(s: HistoryItem) {
+    setName(s.name);
+    setCategory(s.category);
+    setPrice(String(s.price));
+    setShowSuggestions(false);
+  }
+
+  async function handleScan(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const text = await scanImageText(file);
+      const guess = parseReceiptText(text);
+      if (guess.name) setName(guess.name);
+      if (guess.price !== null) setPrice(String(guess.price));
+      if (!guess.name && guess.price === null) {
+        setScanError("Couldn't read anything from that photo — try a clearer shot, or enter it manually.");
+      }
+    } catch {
+      setScanError("Scan failed — enter the item manually.");
+    } finally {
+      setScanning(false);
+    }
   }
 
   function updateQty(id: string, quantity: number) {
@@ -89,10 +152,14 @@ export default function ListMakerPage() {
       setSavedNotice(true);
       setTimeout(() => setSavedNotice(false), 1800);
       loadSavedLists();
+      loadHistory();
     }
   }
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const suggestions = name.trim()
+    ? history.filter((h) => h.name.toLowerCase().includes(name.trim().toLowerCase())).slice(0, 6)
+    : [];
 
   return (
     <div className="pb-8">
@@ -101,12 +168,57 @@ export default function ListMakerPage() {
       <div className="px-5 pt-4">
         <div className="rounded-xl2 border border-caddy-orange-light bg-white p-3 shadow-card">
           <div className="space-y-2">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Item, e.g. Milk"
-              className="w-full rounded-lg border border-caddy-orange-light bg-caddy-cream px-3 py-2 text-sm outline-none focus:border-caddy-orange"
-            />
+            <div className="relative flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  placeholder="Item, e.g. Milk"
+                  className="w-full rounded-lg border border-caddy-orange-light bg-caddy-cream px-3 py-2 text-sm outline-none focus:border-caddy-orange"
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-caddy-orange-light bg-white shadow-card">
+                    {suggestions.map((s) => (
+                      <button
+                        key={s.name}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => pickSuggestion(s)}
+                        className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-caddy-orange-light/40"
+                      >
+                        <span className="truncate text-caddy-ink">{s.name}</span>
+                        <span className="ml-2 shrink-0 text-xs text-caddy-gray">
+                          £{s.price.toFixed(2)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleScan}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={scanning}
+                aria-label="Scan a price tag or receipt"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-caddy-orange-light text-caddy-orange-dark hover:bg-caddy-orange-light disabled:opacity-50"
+              >
+                {scanning ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+              </button>
+            </div>
+
             <div className="flex gap-2">
               <select
                 value={category}
@@ -133,6 +245,13 @@ export default function ListMakerPage() {
               </div>
             </div>
           </div>
+
+          {scanError && <p className="mt-2 text-xs font-medium text-red-600">{scanError}</p>}
+          <p className="mt-2 text-[11px] text-caddy-gray">
+            The camera reads printed text off a price tag or receipt — it can't recognise an item
+            with no visible text, so double-check what it fills in.
+          </p>
+
           <div className="mt-2 flex justify-end">
             <button
               onClick={addItem}

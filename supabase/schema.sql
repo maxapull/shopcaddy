@@ -118,6 +118,10 @@ create table if not exists shopping_list_items (
   quantity integer not null default 1 check (quantity > 0)
 );
 
+-- Added after the initial release, for the "past items" search when adding
+-- to a list — safe to re-run against an already-migrated project.
+alter table shopping_list_items add column if not exists created_at timestamptz not null default now();
+
 alter table shopping_list_items enable row level security;
 
 drop policy if exists "Users manage own list items" on shopping_list_items;
@@ -127,3 +131,4 @@ create policy "Users manage own list items" on shopping_list_items
   with check (auth.uid() = user_id);
 
 create index if not exists shopping_list_items_list_idx on shopping_list_items (list_id);
+create index if not exists shopping_list_items_user_recent_idx on shopping_list_items (user_id, created_at desc);
