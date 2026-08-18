@@ -15,9 +15,8 @@ one-time step — everything else in the app is already wired up to use it.
 1. In your new project, open **SQL Editor** in the left sidebar → **New query**.
 2. Open [`supabase/schema.sql`](supabase/schema.sql) from this repo, copy its entire
    contents, and paste into the query editor.
-3. Click **Run**. This creates every table, security policy, and the product catalog
-   (100 seeded products) in one go. It's safe to re-run any time — it won't touch your
-   users' accounts, budgets, or transactions, only the shared catalog.
+3. Click **Run**. This creates every table and security policy in one go. It's safe
+   to re-run any time.
 
 ## 3. Get your API keys
 

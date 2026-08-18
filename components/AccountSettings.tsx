@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, LogOut, Sparkles, Wallet } from "lucide-react";
 import { updateMonthlyBudget, upsertBudget } from "@/lib/actions";
-import { BUDGET_CATEGORIES } from "@/lib/catalog";
+import { BUDGET_CATEGORIES } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/client";
 import { CategoryBudget } from "@/types";
 
@@ -121,8 +121,8 @@ export function AccountSettings({
 
       <div className="mx-5 mt-4 flex items-center gap-2 rounded-xl2 bg-caddy-orange-light/70 p-4 text-xs text-caddy-orange-dark">
         <Sparkles size={16} className="shrink-0" />
-        ShopCaddy's catalog is a curated, indicative price panel — not a live retailer feed. Buy
-        links take you to the retailer's own site to complete your purchase.
+        ShopCaddy doesn't look up prices for you — every amount here is something you told it
+        yourself, in Chat or on this page.
       </div>
     </div>
   );

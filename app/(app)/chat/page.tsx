@@ -5,15 +5,14 @@ import { SendHorizonal } from "lucide-react";
 import { TopBar } from "@/components/TopBar";
 import { ChatBubble } from "@/components/ChatBubble";
 import { createClient } from "@/lib/supabase/client";
-import { chooseProduct, chooseVariant, loggedMessage, respond } from "@/lib/assistant";
-import { markPurchased } from "@/lib/actions";
-import { categoryLabel } from "@/lib/catalog";
-import { ChatMessage, Product, ProductVariant } from "@/types";
+import { loggedMessage, respond } from "@/lib/assistant";
+import { addTransaction } from "@/lib/actions";
+import { ChatMessage, PendingLog } from "@/types";
 
 const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  text: 'Hi, I\'m your ShopCaddy assistant. Ask me to find something ("kettle under £30"), where it\'s cheapest, or how your budget\'s looking this month.',
+  text: 'Hi, I\'m your ShopCaddy budget assistant. Tell me what you\'ve spent ("spent £12 on lunch"), ask how your budget\'s looking, or ask for money-saving tips.',
 };
 
 export default function ChatPage() {
@@ -41,41 +40,27 @@ export default function ChatPage() {
     setBusy(false);
   }
 
-  function selectProduct(product: Product) {
-    setMessages((prev) => [...prev, chooseProduct(product)]);
-  }
-
-  function selectVariant(product: Product, variant: ProductVariant) {
-    setMessages((prev) => [...prev, chooseVariant(product, variant)]);
-  }
-
-  async function handleMarkPurchased(product: Product, variant?: ProductVariant) {
+  async function handleConfirmLog(log: PendingLog) {
     setBusy(true);
-    const result = await markPurchased({
-      amount: product.price,
-      category: categoryLabel(product.category),
-      productName: variant ? `${product.name} (${variant.kind} ${variant.value})` : product.name,
-      retailer: product.retailer,
+    const result = await addTransaction({
+      amount: log.amount,
+      category: log.category,
+      note: log.note,
+      date: new Date().toISOString().slice(0, 10),
     });
     if (result.success) {
-      setMessages((prev) => [...prev, loggedMessage(product)]);
+      setMessages((prev) => [...prev, loggedMessage(log)]);
     }
     setBusy(false);
   }
 
   return (
     <div>
-      <TopBar title="Chat with ShopCaddy" subtitle="Find it, compare it, track what you spend" />
+      <TopBar title="Chat with ShopCaddy" subtitle="Log spends, check your budget, get savings tips" />
 
       <div className="space-y-3 px-4 py-4">
         {messages.map((m) => (
-          <ChatBubble
-            key={m.id}
-            message={m}
-            onSelectProduct={selectProduct}
-            onSelectVariant={selectVariant}
-            onMarkPurchased={handleMarkPurchased}
-          />
+          <ChatBubble key={m.id} message={m} onConfirmLog={handleConfirmLog} />
         ))}
         <div ref={bottomRef} />
       </div>
@@ -90,7 +75,7 @@ export default function ChatPage() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask ShopCaddy to find something…"
+          placeholder='Try "spent £12 on lunch"…'
           className="flex-1 rounded-full border border-caddy-orange-light bg-caddy-cream px-4 py-2.5 text-sm outline-none focus:border-caddy-orange"
         />
         <button

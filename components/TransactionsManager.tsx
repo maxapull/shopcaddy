@@ -4,13 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Package, Pencil, Plus, Trash2, X } from "lucide-react";
 import { addTransaction, deleteTransaction, updateTransaction } from "@/lib/actions";
-import { BUDGET_CATEGORIES } from "@/lib/catalog";
+import { BUDGET_CATEGORIES } from "@/lib/categories";
 import { CategoryBudget, Transaction } from "@/types";
-
-const SOURCE_STYLES: Record<Transaction["source"], string> = {
-  manual: "bg-blue-100 text-blue-700",
-  shopping: "bg-caddy-orange-light text-caddy-orange-dark",
-};
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
@@ -138,7 +133,7 @@ export function TransactionsManager({
       {transactions.length === 0 && (
         <div className="flex flex-col items-center py-12 text-center text-caddy-gray">
           <Package size={28} className="mb-2 text-caddy-orange-light" />
-          <p className="text-sm">Nothing logged yet — add a spend, or log a purchase from Chat.</p>
+          <p className="text-sm">Nothing logged yet — add a spend, or tell Chat what you spent.</p>
         </div>
       )}
 
@@ -150,39 +145,32 @@ export function TransactionsManager({
           >
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${SOURCE_STYLES[t.source]}`}
-                >
+                <span className="rounded-full bg-caddy-orange-light px-2 py-0.5 text-[10px] font-semibold text-caddy-orange-dark">
                   {t.category}
                 </span>
                 <span className="text-[11px] text-caddy-gray">
                   {new Date(t.date).toLocaleDateString("en-GB")}
                 </span>
               </div>
-              <p className="mt-1 truncate text-sm font-medium text-caddy-ink">
-                {t.productName ?? t.note ?? "—"}
-              </p>
-              {t.retailer && <p className="text-xs text-caddy-gray">{t.retailer}</p>}
+              <p className="mt-1 truncate text-sm font-medium text-caddy-ink">{t.note ?? "—"}</p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <p className="font-bold text-caddy-ink">£{t.amount.toFixed(2)}</p>
-              {t.source === "manual" && (
-                <button
-                  onClick={() =>
-                    setForm({
-                      id: t.id,
-                      amount: String(t.amount),
-                      category: t.category,
-                      note: t.note ?? "",
-                      date: t.date,
-                    })
-                  }
-                  aria-label="Edit transaction"
-                  className="text-caddy-gray hover:text-caddy-orange-dark"
-                >
-                  <Pencil size={15} />
-                </button>
-              )}
+              <button
+                onClick={() =>
+                  setForm({
+                    id: t.id,
+                    amount: String(t.amount),
+                    category: t.category,
+                    note: t.note ?? "",
+                    date: t.date,
+                  })
+                }
+                aria-label="Edit transaction"
+                className="text-caddy-gray hover:text-caddy-orange-dark"
+              >
+                <Pencil size={15} />
+              </button>
               <button
                 onClick={() => handleDelete(t.id)}
                 disabled={busy}

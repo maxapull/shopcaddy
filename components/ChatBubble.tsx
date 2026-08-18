@@ -1,18 +1,52 @@
+"use client";
+
+import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
-import { ChatMessage, Product, ProductVariant } from "@/types";
+import { ChatMessage, PendingLog } from "@/types";
 import { Logo } from "@/components/Logo";
-import { ProductCard } from "@/components/ProductCard";
+import { BUDGET_CATEGORIES } from "@/lib/categories";
+
+function ConfirmLogCard({
+  log,
+  onConfirm,
+}: {
+  log: PendingLog;
+  onConfirm?: (log: PendingLog) => void;
+}) {
+  const [category, setCategory] = useState(log.category);
+
+  return (
+    <div className="space-y-2 rounded-xl2 border border-caddy-orange-light bg-white p-3 shadow-card">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-semibold text-caddy-ink">£{log.amount.toFixed(2)}</span>
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="rounded-full border border-caddy-orange-light bg-caddy-cream px-2 py-1 text-xs outline-none"
+        >
+          {BUDGET_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+      <button
+        onClick={() => onConfirm?.({ ...log, category })}
+        className="flex w-full items-center justify-center gap-2 rounded-xl2 bg-caddy-orange px-4 py-2 text-sm font-semibold text-white shadow-floating"
+      >
+        <CheckCircle2 size={16} /> Log it
+      </button>
+    </div>
+  );
+}
 
 export function ChatBubble({
   message,
-  onSelectProduct,
-  onSelectVariant,
-  onMarkPurchased,
+  onConfirmLog,
 }: {
   message: ChatMessage;
-  onSelectProduct?: (product: Product) => void;
-  onSelectVariant?: (product: Product, variant: ProductVariant) => void;
-  onMarkPurchased?: (product: Product, variant?: ProductVariant) => void;
+  onConfirmLog?: (log: PendingLog) => void;
 }) {
   const isUser = message.role === "user";
 
@@ -36,48 +70,8 @@ export function ChatBubble({
           {message.text}
         </div>
 
-        {message.kind === "product-options" && message.meta?.options && (
-          <div className="space-y-2">
-            {message.meta.options.map((product, i) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onSelect={onSelectProduct}
-                badge={i === 0 ? "Cheapest" : undefined}
-              />
-            ))}
-          </div>
-        )}
-
-        {message.kind === "variant-options" && message.meta?.product && (
-          <div className="flex flex-wrap gap-2">
-            {message.meta.product.variants.map((v) => (
-              <button
-                key={v.id}
-                disabled={!v.inStock}
-                onClick={() => onSelectVariant?.(message.meta!.product!, v)}
-                className="rounded-full border border-caddy-orange-light bg-white px-3.5 py-1.5 text-xs font-semibold text-caddy-ink shadow-card hover:border-caddy-orange hover:text-caddy-orange-dark disabled:opacity-40"
-              >
-                {v.value}
-                {!v.inStock && " · out of stock"}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {message.kind === "product-ready" && message.meta?.product && (
-          <div className="space-y-2">
-            <ProductCard
-              product={message.meta.product}
-              linkLabel={`Buy at ${message.meta.product.retailer} ↗`}
-            />
-            <button
-              onClick={() => onMarkPurchased?.(message.meta!.product!, message.meta!.variant)}
-              className="flex items-center gap-2 rounded-xl2 border border-caddy-orange bg-white px-4 py-2 text-sm font-semibold text-caddy-orange-dark shadow-card hover:bg-caddy-orange-light"
-            >
-              <CheckCircle2 size={16} /> I bought this
-            </button>
-          </div>
+        {message.kind === "confirm-log" && message.meta?.pendingLog && (
+          <ConfirmLogCard log={message.meta.pendingLog} onConfirm={onConfirmLog} />
         )}
 
         {message.kind === "logged" && (

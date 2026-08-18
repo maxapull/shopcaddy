@@ -32,7 +32,7 @@ export default async function HomePage() {
     supabase.from("profiles").select("monthly_budget").eq("id", user.id).single(),
     supabase
       .from("transactions")
-      .select("id, amount, category, note, date, source, product_name, retailer")
+      .select("id, amount, category, note, date")
       .eq("user_id", user.id)
       .gte("date", monthStartStr)
       .order("date", { ascending: false })
@@ -62,7 +62,7 @@ export default async function HomePage() {
         >
           <span>
             <span className="block text-sm font-semibold">Build my list</span>
-            <span className="block text-xs text-white/80">AI list + prices</span>
+            <span className="block text-xs text-white/80">Plan it, total it</span>
           </span>
           <ShoppingBag size={20} />
         </Link>
@@ -72,7 +72,7 @@ export default async function HomePage() {
         >
           <span>
             <span className="block text-sm font-semibold">Ask ShopCaddy</span>
-            <span className="block text-xs text-caddy-gray">Find, compare, save</span>
+            <span className="block text-xs text-caddy-gray">Log spend, get tips</span>
           </span>
           <Sparkles size={20} className="text-caddy-orange" />
         </Link>
@@ -152,8 +152,8 @@ export default async function HomePage() {
         </div>
         {transactions.length === 0 ? (
           <p className="text-sm text-caddy-gray">
-            Nothing logged yet this month — ask ShopCaddy to find something in Chat, or add a
-            spend in Budget.
+            Nothing logged yet this month — tell ShopCaddy what you spent in Chat, or add a spend
+            in Budget.
           </p>
         ) : (
           <div className="space-y-2">
@@ -164,9 +164,9 @@ export default async function HomePage() {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-caddy-ink">
-                    {t.product_name ?? t.note ?? t.category}
+                    {t.note ?? t.category}
                   </p>
-                  <p className="text-xs text-caddy-gray">{t.retailer ?? t.category}</p>
+                  <p className="text-xs text-caddy-gray">{t.category}</p>
                 </div>
                 <p className="shrink-0 text-sm font-bold text-caddy-ink">£{Number(t.amount).toFixed(2)}</p>
               </div>

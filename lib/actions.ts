@@ -16,6 +16,9 @@ async function requireUser() {
 }
 
 // --- Transactions -----------------------------------------------------------
+// Every transaction is entered by the user, either directly on /orders or via
+// a "log this" confirmation in Chat — there is no product catalog and
+// nothing is ever logged automatically.
 
 const transactionSchema = z.object({
   amount: z.coerce.number().min(0).max(1_000_000),
@@ -37,7 +40,6 @@ export async function addTransaction(input: unknown): Promise<ActionResult> {
     category: parsed.data.category,
     note: parsed.data.note || null,
     date: parsed.data.date,
-    source: "manual",
   });
   if (error) return { success: false, error: error.message };
 
@@ -75,38 +77,6 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
   if (!user) return { success: false, error: "Not signed in." };
 
   const { error } = await supabase.from("transactions").delete().eq("id", id).eq("user_id", user.id);
-  if (error) return { success: false, error: error.message };
-
-  revalidatePath("/orders");
-  revalidatePath("/");
-  return { success: true };
-}
-
-// Logs a real purchase the user made after clicking through to a retailer —
-// the honest replacement for the old fake "autonomous purchase" flow.
-const markPurchasedSchema = z.object({
-  amount: z.coerce.number().min(0).max(1_000_000),
-  category: z.string().trim().min(1).max(60),
-  productName: z.string().trim().min(1).max(200),
-  retailer: z.string().trim().min(1).max(120),
-});
-
-export async function markPurchased(input: unknown): Promise<ActionResult> {
-  const parsed = markPurchasedSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
-
-  const { supabase, user } = await requireUser();
-  if (!user) return { success: false, error: "Not signed in." };
-
-  const { error } = await supabase.from("transactions").insert({
-    user_id: user.id,
-    amount: parsed.data.amount,
-    category: parsed.data.category,
-    date: new Date().toISOString().slice(0, 10),
-    source: "shopping",
-    product_name: parsed.data.productName,
-    retailer: parsed.data.retailer,
-  });
   if (error) return { success: false, error: error.message };
 
   revalidatePath("/orders");
@@ -161,13 +131,17 @@ export async function updateMonthlyBudget(amount: unknown): Promise<ActionResult
 }
 
 // --- Shopping lists ------------------------------------------------------------
+// Every item is typed in by the user — there's no catalog behind this,
+// ShopCaddy just organises and totals what you enter.
 
 const saveListSchema = z.object({
   title: z.string().trim().min(1).max(200),
   items: z
     .array(
       z.object({
-        productId: z.string().uuid(),
+        name: z.string().trim().min(1).max(200),
+        category: z.string().trim().min(1).max(60),
+        price: z.coerce.number().min(0).max(1_000_000),
         quantity: z.coerce.number().int().min(1).max(99),
       })
     )
@@ -192,7 +166,9 @@ export async function saveShoppingList(input: unknown): Promise<ActionResult> {
     parsed.data.items.map((item) => ({
       list_id: list.id,
       user_id: user.id,
-      product_id: item.productId,
+      name: item.name,
+      category: item.category,
+      price: item.price,
       quantity: item.quantity,
     }))
   );

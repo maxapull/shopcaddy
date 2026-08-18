@@ -10,9 +10,6 @@ interface TransactionRow {
   category: string;
   note: string | null;
   date: string;
-  source: string;
-  product_name: string | null;
-  retailer: string | null;
   created_at: string;
 }
 
@@ -29,9 +26,6 @@ function mapTransaction(row: TransactionRow): Transaction {
     category: row.category,
     note: row.note,
     date: row.date,
-    source: row.source as Transaction["source"],
-    productName: row.product_name,
-    retailer: row.retailer,
     createdAt: row.created_at,
   };
 }
