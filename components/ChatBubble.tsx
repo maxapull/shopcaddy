@@ -1,29 +1,18 @@
-import { CheckCircle2, ShieldAlert, Truck } from "lucide-react";
-import { ChatMessage, DeliveryOption, Product } from "@/types";
+import { CheckCircle2 } from "lucide-react";
+import { ChatMessage, Product, ProductVariant } from "@/types";
 import { Logo } from "@/components/Logo";
 import { ProductCard } from "@/components/ProductCard";
 
-function DeliveryLine({ option }: { option: DeliveryOption }) {
-  return (
-    <p className="flex items-center gap-1 px-1 text-xs text-caddy-ink/60">
-      <Truck size={12} /> {option.label} ({option.eta}) —{" "}
-      {option.price === 0 ? "Free" : `£${option.price.toFixed(2)}`}
-    </p>
-  );
-}
-
 export function ChatBubble({
   message,
-  onLinkBank,
-  onConfirm,
   onSelectProduct,
-  onSelectDelivery,
+  onSelectVariant,
+  onMarkPurchased,
 }: {
   message: ChatMessage;
-  onLinkBank?: () => void;
-  onConfirm?: () => void;
   onSelectProduct?: (product: Product) => void;
-  onSelectDelivery?: (option: DeliveryOption) => void;
+  onSelectVariant?: (product: Product, variant: ProductVariant) => void;
+  onMarkPurchased?: (product: Product, variant?: ProductVariant) => void;
 }) {
   const isUser = message.role === "user";
 
@@ -43,7 +32,7 @@ export function ChatBubble({
         <Logo size="sm" />
       </div>
       <div className="max-w-[82%] space-y-2 md:max-w-sm">
-        <div className="rounded-2xl rounded-tl-sm bg-caddy-orange-light/70 px-4 py-2.5 text-sm text-caddy-ink shadow-card">
+        <div className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-caddy-orange-light/70 px-4 py-2.5 text-sm text-caddy-ink shadow-card">
           {message.text}
         </div>
 
@@ -60,63 +49,40 @@ export function ChatBubble({
           </div>
         )}
 
-        {message.kind === "delivery-options" && message.meta?.deliveryOptions && (
-          <div className="space-y-2">
-            {message.meta.deliveryOptions.map((option) => (
+        {message.kind === "variant-options" && message.meta?.product && (
+          <div className="flex flex-wrap gap-2">
+            {message.meta.product.variants.map((v) => (
               <button
-                key={option.id}
-                onClick={() => onSelectDelivery?.(option)}
-                className="flex w-full items-center justify-between gap-3 rounded-xl2 border border-caddy-orange-light bg-white px-4 py-2.5 text-left shadow-card hover:bg-caddy-orange-light/40"
+                key={v.id}
+                disabled={!v.inStock}
+                onClick={() => onSelectVariant?.(message.meta!.product!, v)}
+                className="rounded-full border border-caddy-orange-light bg-white px-3.5 py-1.5 text-xs font-semibold text-caddy-ink shadow-card hover:border-caddy-orange hover:text-caddy-orange-dark disabled:opacity-40"
               >
-                <span>
-                  <span className="block text-sm font-semibold text-caddy-ink">{option.label}</span>
-                  <span className="block text-xs text-caddy-ink/60">{option.eta}</span>
-                </span>
-                <span className="shrink-0 text-sm font-bold text-caddy-orange-dark">
-                  {option.price === 0 ? "Free" : `£${option.price.toFixed(2)}`}
-                </span>
+                {v.value}
+                {!v.inStock && " · out of stock"}
               </button>
             ))}
           </div>
         )}
 
-        {message.kind === "order-confirm" && message.meta?.product && (
+        {message.kind === "product-ready" && message.meta?.product && (
           <div className="space-y-2">
-            <ProductCard product={message.meta.product} />
-            {message.meta.deliveryOption && <DeliveryLine option={message.meta.deliveryOption} />}
+            <ProductCard
+              product={message.meta.product}
+              linkLabel={`Buy at ${message.meta.product.retailer} ↗`}
+            />
             <button
-              onClick={onConfirm}
+              onClick={() => onMarkPurchased?.(message.meta!.product!, message.meta!.variant)}
               className="flex items-center gap-2 rounded-xl2 border border-caddy-orange bg-white px-4 py-2 text-sm font-semibold text-caddy-orange-dark shadow-card hover:bg-caddy-orange-light"
             >
-              <CheckCircle2 size={16} /> Confirm purchase — £
-              {(message.meta.product.price + (message.meta.deliveryOption?.price ?? 0)).toFixed(2)}
+              <CheckCircle2 size={16} /> I bought this
             </button>
           </div>
         )}
 
-        {message.kind === "bank-required" && (
-          <div className="space-y-2">
-            {message.meta?.product && <ProductCard product={message.meta.product} />}
-            {message.meta?.deliveryOption && <DeliveryLine option={message.meta.deliveryOption} />}
-            <button
-              onClick={onLinkBank}
-              className="flex items-center gap-2 rounded-xl2 border border-caddy-orange bg-white px-4 py-2 text-sm font-semibold text-caddy-orange-dark shadow-card hover:bg-caddy-orange-light"
-            >
-              <ShieldAlert size={16} /> Link bank now
-            </button>
-          </div>
-        )}
-
-        {message.kind === "order-success" && message.meta?.product && (
-          <div className="space-y-2">
-            <ProductCard product={message.meta.product} />
-            {message.meta.deliveryOption && <DeliveryLine option={message.meta.deliveryOption} />}
-            <div className="rounded-xl2 border border-green-200 bg-green-50 px-4 py-2.5 text-xs text-green-800">
-              <p className="font-semibold">Order placed</p>
-              <p>
-                {message.meta.product.name} · £{message.meta.orderTotal?.toFixed(2)}
-              </p>
-            </div>
+        {message.kind === "logged" && (
+          <div className="rounded-xl2 border border-green-200 bg-green-50 px-4 py-2.5 text-xs text-green-800">
+            <p className="font-semibold">Logged to your budget</p>
           </div>
         )}
       </div>

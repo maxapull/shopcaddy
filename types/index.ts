@@ -1,4 +1,11 @@
-export type Category = "food" | "clothes" | "household";
+export type Category = "food" | "household" | "clothes";
+
+export interface ProductVariant {
+  id: string;
+  kind: "size" | "colour";
+  value: string;
+  inStock: boolean;
+}
 
 export interface Product {
   id: string;
@@ -6,18 +13,16 @@ export interface Product {
   category: Category;
   retailer: string;
   price: number;
-  unit?: string;
   tags: string[];
   ecoScore?: 1 | 2 | 3 | 4 | 5;
-  alternativeId?: string; // cheaper alternative product id
+  variants: ProductVariant[];
 }
 
 export interface ListItem {
   id: string;
   query: string;
-  product: Product;
-  alternative?: Product;
-  useAlternative: boolean;
+  options: Product[];
+  selectedIndex: number;
   quantity: number;
 }
 
@@ -28,43 +33,43 @@ export interface ShoppingList {
   items: ListItem[];
 }
 
-export type ChatRole = "user" | "assistant";
+export type TransactionSource = "manual" | "shopping";
 
-export interface DeliveryOption {
+export interface Transaction {
   id: string;
-  label: string;
-  eta: string;
-  price: number; // 0 = free
+  amount: number;
+  category: string;
+  note: string | null;
+  date: string;
+  source: TransactionSource;
+  productName: string | null;
+  retailer: string | null;
+  createdAt: string;
 }
+
+export interface CategoryBudget {
+  id: string;
+  category: string;
+  monthlyLimit: number;
+}
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  monthlyBudget: number;
+}
+
+export type ChatRole = "user" | "assistant";
 
 export interface ChatMessage {
   id: string;
   role: ChatRole;
   text: string;
-  kind?:
-    | "text"
-    | "order-confirm"
-    | "order-success"
-    | "bank-required"
-    | "product-options"
-    | "delivery-options";
+  kind?: "text" | "product-options" | "variant-options" | "product-ready" | "logged";
   meta?: {
     product?: Product;
     options?: Product[];
-    deliveryOptions?: DeliveryOption[];
-    deliveryOption?: DeliveryOption;
-    orderTotal?: number;
-    originalPrice?: number;
+    variant?: ProductVariant;
+    transaction?: Transaction;
   };
-}
-
-export interface Order {
-  id: string;
-  date: string;
-  productName: string;
-  retailer: string;
-  price: number;
-  saved: number;
-  status: "Delivered" | "Processing" | "Placed";
-  delivery?: string;
 }

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, ShieldAlert } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { NAV_ITEMS } from "@/lib/nav";
-import { useAppState } from "@/lib/store";
+import { useSession } from "@/lib/session-context";
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { bankLinked } = useAppState();
+  const { email } = useSession();
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-caddy-orange-light/70 bg-white px-4 py-6 md:flex">
@@ -37,13 +37,9 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div
-        className={`flex items-center gap-2 rounded-xl2 px-3 py-2.5 text-xs font-semibold ${
-          bankLinked ? "bg-green-100 text-green-700" : "bg-caddy-orange-light text-caddy-orange-dark"
-        }`}
-      >
-        {bankLinked ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
-        {bankLinked ? "Bank linked" : "Bank not linked"}
+      <div className="flex items-center gap-2 truncate rounded-xl2 bg-caddy-orange-light px-3 py-2.5 text-xs font-semibold text-caddy-orange-dark">
+        <UserRound size={14} className="shrink-0" />
+        <span className="truncate">{email}</span>
       </div>
     </aside>
   );

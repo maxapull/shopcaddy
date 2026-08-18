@@ -5,17 +5,16 @@ import { ListItem } from "@/types";
 
 export function ListItemRow({
   item,
-  onToggleAlt,
+  onSelectOption,
   onQtyChange,
   onRemove,
 }: {
   item: ListItem;
-  onToggleAlt: () => void;
+  onSelectOption: (index: number) => void;
   onQtyChange: (qty: number) => void;
   onRemove: () => void;
 }) {
-  const chosen = item.useAlternative && item.alternative ? item.alternative : item.product;
-  const saving = item.alternative ? item.product.price - item.alternative.price : 0;
+  const chosen = item.options[item.selectedIndex];
 
   return (
     <div className="rounded-xl2 border border-caddy-orange-light bg-white p-4 shadow-card">
@@ -64,27 +63,22 @@ export function ListItemRow({
         )}
       </div>
 
-      {item.alternative && (
-        <button
-          onClick={onToggleAlt}
-          className={`mt-3 w-full rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-            item.useAlternative
-              ? "border-caddy-orange bg-caddy-orange-light text-caddy-orange-dark"
-              : "border-dashed border-caddy-orange-light text-caddy-gray hover:border-caddy-orange"
-          }`}
-        >
-          {item.useAlternative ? (
-            <>
-              Switched to <b>{item.alternative.retailer}</b> — saving £{saving.toFixed(2)}. Tap to
-              switch back.
-            </>
-          ) : (
-            <>
-              Cheaper option: <b>{item.alternative.retailer}</b> for £{item.alternative.price.toFixed(2)}{" "}
-              (save £{saving.toFixed(2)})
-            </>
-          )}
-        </button>
+      {item.options.length > 1 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {item.options.map((option, i) => (
+            <button
+              key={option.id}
+              onClick={() => onSelectOption(i)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                i === item.selectedIndex
+                  ? "border-caddy-orange bg-caddy-orange-light text-caddy-orange-dark"
+                  : "border-dashed border-caddy-orange-light text-caddy-gray hover:border-caddy-orange"
+              }`}
+            >
+              {option.retailer} £{option.price.toFixed(2)}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

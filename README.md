@@ -1,79 +1,72 @@
 # ShopCaddy
 
-Smart shopping, sorted. ShopCaddy is a concept app that combines an AI shopping-list
-builder with an autonomous purchasing assistant, for both **food** and **clothes**
-shopping.
+Your AI shopping and budget assistant. ShopCaddy compares prices across retailers,
+builds priced shopping lists, and helps you track and stick to a budget — across
+**food**, **household**, and **clothes**.
 
-## The pitch
+## What it actually does
 
-Households waste hours comparing prices across supermarkets and clothing retailers,
-and even more time actually placing orders. ShopCaddy collapses that into one flow:
-describe what you need in plain English, get a priced list with cheaper alternatives
-found automatically, and — once you link your bank — let the AI complete the purchase
-for you in chat. Layered on top: budget tracking, price-drop alerts, a pantry/wardrobe
-tracker to avoid duplicate buys, multi-store basket splitting for the lowest total, and
-household list sharing. That combination — planning, comparison, and autonomous
-checkout in one app — is the wedge for a venture-scale (£10m+) consumer app: high
-usage frequency (weekly groceries), a clear savings hook, and a natural upsell into a
-take-rate on completed orders or a premium subscription.
+- **AI List Maker** (`/list`) — describe what you need in one message (e.g. *"milk,
+  bread and a kettle"*) and it's matched against the catalog into a priced, itemised
+  list. Every item shows every retailer that stocks it, cheapest first, and you can
+  switch between them with one tap.
+- **Chat assistant** (`/chat`) — ask it to find something, ask where it's cheapest, ask
+  whether you can afford it this month, or ask for money-saving tips. It finds real
+  matches from the catalog and gives you a direct link to the retailer to complete your
+  purchase — then, once you actually have, tell it and it logs the spend to your budget.
+- **Budget** (`/orders`) — the real transaction ledger. Log spend manually or via Chat,
+  see spend-by-category against the budgets you set, edit or delete anything.
+- **Account** (`/account`) — your overall and per-category monthly budgets, and your
+  session.
 
-## What's in this prototype
+## What it deliberately doesn't do
 
-This is a working **front-end scaffold** — a real Next.js codebase you can run and
-click through — with AI behaviour and bank linking **simulated** using local mock data
-and rule-based logic (no real LLM calls, no real bank/Open Banking integration, no real
-retailer prices). It's built to demonstrate the product, flows and UI, and to be a
-starting point for wiring up real services.
+- **It doesn't execute purchases for you.** Completing a real payment on your behalf
+  needs FCA/Open Banking authorization — not something a codebase can grant itself.
+  ShopCaddy finds and compares, hands you a link, and lets you log what you actually
+  spent.
+- **It isn't a live price-comparison feed.** The catalog (100 products across food,
+  household, and clothes) is ShopCaddy's own curated, indicative price panel — real
+  product names and realistic UK pricing, but not pulled live from retailers. Wiring up
+  a real feed (affiliate networks like Awin/CJ/Rakuten, or direct retailer APIs) is the
+  natural next step for a production launch.
+- **It doesn't use a paid LLM.** Understanding what you type is a local, free
+  keyword/fuzzy-matching engine (`lib/assistant.ts`, Postgres trigram search in
+  `lib/catalog.ts`) — good at flexible phrasing and typos, not true language
+  understanding. Swapping in a real LLM call is a contained change if that tradeoff
+  ever flips.
+- Pantry/wardrobe tracking, price-drop alerts, multi-store basket splitting, and
+  household sharing are on the roadmap (see the "Coming soon" cards on Home) — not
+  built yet.
 
-### Core features
-- **AI List Maker** (`/list`) — describe what you need (e.g. *"chicken curry for 4"* or
-  *"new running shoes and a t-shirt"*) and it's parsed into a priced, itemised list
-  spanning food and clothes, with a cheaper alternative suggested per item and a running
-  total cost.
-- **Chat & auto-purchase** (`/chat`) — ask the assistant to buy something
-  (*"buy me a kettle under £30"*) and it finds a match, compares price, and — once you
-  link a bank — completes the "purchase" and logs it to Orders.
-- **Bank link flow** (mock Open Banking-style consent screen) — required before the
-  assistant can check out on your behalf.
+## Architecture
 
-### Supporting features
-- **Home dashboard** — monthly spend, AI savings, budget progress bar, recent orders.
-- **Orders** — history of everything the AI has bought, with savings vs. full price.
-- **Account** — bank link management, monthly budget, household members, notification
-  preferences.
-- Feature previews for **pantry/wardrobe tracking**, **price-drop alerts**,
-  **multi-store basket splitting**, and **household sharing** — flagged as the next
-  slice of roadmap.
-
-## Design
-
-White background with a single confident orange accent (`#FF7A1A`), rounded cards,
-generous spacing, bottom tab navigation — a modern, simple mobile-app shell that also
-works in a desktop browser (centred phone-width column).
+- **Next.js 15** (App Router) + TypeScript + Tailwind CSS.
+- **Supabase** (Postgres + Auth) for real accounts and data — see [`SETUP.md`](SETUP.md)
+  to connect your own project (required to run the app; a `/setup` page walks through
+  it if it isn't configured yet).
+- **Row Level Security** on every user-owned table, scoped to `auth.uid()` — see
+  [`supabase/schema.sql`](supabase/schema.sql).
+- Server Components fetch data; **Server Actions** (`lib/actions.ts`) handle every
+  mutation (transactions, budgets, saved lists); the product/variant search is a
+  Postgres function (`search_products`) called directly from the client, since the
+  catalog is public read-only data.
+- `lib/catalog.ts` — search, retailer deep-links, delivery estimates.
+- `lib/assistant.ts` — the chat/list "AI": intent detection, budget-aware answers,
+  variant (size/colour) picking.
 
 ## Getting started
+
+See [`SETUP.md`](SETUP.md) for the one-time Supabase setup, then:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Try:
-1. **List** → type "chicken curry for 4" → tap a cheaper-alternative chip → note the
-   total update → "Buy in chat".
-2. **Account** → "Link bank" → pick any bank (simulated, ~1s "connecting").
-3. **Chat** → "buy me a kettle under £30" → confirm → see it land in **Orders**.
-
-## Architecture notes
-
-- Next.js 14 (App Router) + TypeScript + Tailwind CSS.
-- `lib/catalog.ts` — mock product catalog (food, clothes, household) with a cheaper
-  alternative wired to most items.
-- `lib/ai.ts` — rule-based stand-ins for the two "AI" surfaces: turning a free-text
-  request into catalog items (`parseRequestToItems`), and a small intent-matching chat
-  responder (`chatRespond`) that handles greetings, buy-intent, and order confirmation.
-  Swap these for real LLM calls (e.g. the Claude API) without changing any UI code.
-- `lib/store.tsx` — a small React context (persisted to `localStorage`) standing in for
-  a backend: bank-link status, order history, saved lists, budget.
-- Real bank connectivity would use Open Banking (e.g. TrueLayer/Plaid) for
-  confirmation-of-payment, never raw card/credential storage.
+Open [http://localhost:3000](http://localhost:3000), sign up, and try:
+1. **Chat** → "cheapest milk" → see every retailer, cheapest first.
+2. **Chat** → "buy me a hoodie" → pick a brand → pick a size → "Buy" opens the retailer
+   → "I bought this" logs it to your budget.
+3. **Budget** → see it show up, edit the amount, or add a manual spend.
+4. **Account** → set a category budget → watch Home's progress bar reflect it.

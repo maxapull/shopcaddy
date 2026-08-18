@@ -1,17 +1,19 @@
 import { ExternalLink, Truck } from "lucide-react";
 import { Product } from "@/types";
-import { deliveryOptionsFor, productUrl } from "@/lib/catalog";
+import { deliveryEstimate, productUrl } from "@/lib/catalog";
 
 export function ProductCard({
   product,
   onSelect,
   selectLabel = "Choose this",
   badge,
+  linkLabel = "View product",
 }: {
   product: Product;
   onSelect?: (product: Product) => void;
   selectLabel?: string;
   badge?: string;
+  linkLabel?: string;
 }) {
   return (
     <div className="flex gap-3 rounded-xl2 border border-caddy-orange-light bg-white p-3 shadow-card">
@@ -27,16 +29,9 @@ export function ProductCard({
         <p className="text-xs text-caddy-ink/60">
           {product.retailer} · £{product.price.toFixed(2)}
         </p>
-        <div className="flex flex-wrap gap-1">
-          {deliveryOptionsFor(product).map((d) => (
-            <span
-              key={d.id}
-              className="flex items-center gap-1 rounded-full bg-caddy-orange-light/60 px-2 py-0.5 text-[10px] font-medium text-caddy-orange-dark"
-            >
-              <Truck size={10} /> {d.label} · {d.price === 0 ? "Free" : `£${d.price.toFixed(2)}`}
-            </span>
-          ))}
-        </div>
+        <p className="flex items-center gap-1 text-[11px] font-medium text-caddy-orange-dark">
+          <Truck size={11} /> {deliveryEstimate(product)}
+        </p>
         <div className="flex items-center gap-3 pt-0.5">
           <a
             href={productUrl(product)}
@@ -44,7 +39,7 @@ export function ProductCard({
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs font-medium text-caddy-orange-dark hover:underline"
           >
-            <ExternalLink size={12} /> View product
+            <ExternalLink size={12} /> {linkLabel}
           </a>
           {onSelect && (
             <button
